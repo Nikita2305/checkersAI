@@ -74,7 +74,7 @@ class BasicMinimaxPlayer(Player):
 class EasyPlayer(BasicMinimaxPlayer):
    
     def __init__(self, player_id):
-        super().__init__(player_id, 3, True)  
+        super().__init__(player_id, 2, True)  
  
     def get_grade(self, board):
         return random.random()
@@ -82,7 +82,7 @@ class EasyPlayer(BasicMinimaxPlayer):
 class HardPlayer(BasicMinimaxPlayer):
    
     def __init__(self, player_id):
-        super().__init__(player_id, 2, False)
+        super().__init__(player_id, 3, False)
 
     def estimate_player_pieces(self, board, player):
         cost = 0
