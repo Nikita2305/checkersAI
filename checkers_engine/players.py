@@ -1,5 +1,9 @@
 from checkers.board import Board
 from functools import reduce
+import random
+
+def other_player_id(player):
+    return 3 - player
 
 class Player:
     
@@ -24,8 +28,8 @@ class BoardTreeNode:
         self.sons = []
 
     def process_score(self):
-        if (self.depth == 0):
-            self.score = self.estimator(self.board, self.host_id)
+        if (self.depth == 0 or not self.board.get_possible_moves()):
+            self.score = self.estimator(self.board)
             return
         for move in self.board.get_possible_moves():
             self.sons.append(BoardTreeNode(self.board.create_new_board_from_move(move), self.host_id, self.depth - 1, self.estimator, move))
@@ -57,8 +61,13 @@ class BasicMinimaxPlayer(Player):
         root = BoardTreeNode(self.board, self.player_id, self.depth, self.get_grade)
         root.process_score()
         return root.choose_best_move()
+    
+    def easy_estimation(self, board, player):
+        if (board.get_possible_moves()):
+            raise RuntimeError("Not possible")
+        return 1e9 * (1 if board.player_turn != player else -1)
         
-    def get_grade(self, board, player):
+    def get_grade(self, board):
         raise RuntimeError("Not implemented")
     
 
@@ -67,13 +76,24 @@ class EasyPlayer(BasicMinimaxPlayer):
     def __init__(self, player_id):
         super().__init__(player_id, 3, True)  
  
-    def get_grade(self, board, player):
-        return 
+    def get_grade(self, board):
+        return random.random()
         
 class HardPlayer(BasicMinimaxPlayer):
    
     def __init__(self, player_id):
         super().__init__(player_id, 2, False)
- 
-    def get_grade(self, board, player):
-        return 0
+
+    def estimate_player_pieces(self, board, player):
+        cost = 0
+        for piece in board.searcher.get_pieces_by_player(player):
+            cost += (1000 if piece.king else 5000)
+        return cost
+
+    def get_grade(self, board):
+        try:
+            return self.easy_estimation(board, self.player_id)
+        except RuntimeError:
+            pass 
+        diff = self.estimate_player_pieces(board, self.player_id) - self.estimate_player_pieces(board, other_player_id(self.player_id))
+        return diff
