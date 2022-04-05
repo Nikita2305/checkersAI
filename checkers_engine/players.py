@@ -7,9 +7,11 @@ def other_player_id(player):
 
 class Player:
     
-    def __init__(self, player_id):
-        self.player_id = player_id
+    def __init__(self):
         self.board = Board()
+
+    def set_player_id(self, player_id):
+        self.player_id = player_id
 
     def handle_move(self, move):
         self.board = self.board.create_new_board_from_move(move)
@@ -52,10 +54,10 @@ class BoardTreeNode:
 
 class BasicMinimaxPlayer(Player):
     
-    def __init__(self, player_id, depth, optimize):
+    def __init__(self, depth, optimize=False):
         self.depth = depth
         self.optimize = optimize
-        super().__init__(player_id) 
+        super().__init__() 
 
     def choose_move(self):
         root = BoardTreeNode(self.board, self.player_id, self.depth, self.get_grade)
@@ -73,21 +75,32 @@ class BasicMinimaxPlayer(Player):
 
 class EasyPlayer(BasicMinimaxPlayer):
    
-    def __init__(self, player_id):
-        super().__init__(player_id, 2, True)  
+    def __init__(self):
+        super().__init__(2)  
  
+    def estimate_player_pieces(self, board, player):
+        cost = 0
+        for piece in board.searcher.get_pieces_by_player(player):
+            cost += 1000
+        return cost
+
     def get_grade(self, board):
-        return random.random()
+        try:
+            return self.easy_estimation(board, self.player_id)
+        except RuntimeError:
+            pass 
+        diff = self.estimate_player_pieces(board, self.player_id) - self.estimate_player_pieces(board, other_player_id(self.player_id))
+        return diff
         
 class HardPlayer(BasicMinimaxPlayer):
    
-    def __init__(self, player_id):
-        super().__init__(player_id, 3, False)
+    def __init__(self):
+        super().__init__(4)
 
     def estimate_player_pieces(self, board, player):
         cost = 0
         for piece in board.searcher.get_pieces_by_player(player):
-            cost += (1000 if piece.king else 5000)
+            cost += (5000 if piece.king else 1000)
         return cost
 
     def get_grade(self, board):
