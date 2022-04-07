@@ -20,6 +20,7 @@ class Player:
         raise RuntimeError("Not implemented")
 
 class BoardTreeNode:
+
     def __init__(self, board, host_id, depth, estimator, move = None):
         self.board = board
         self.host_id = host_id
@@ -29,20 +30,22 @@ class BoardTreeNode:
         self.score = None
         self.sons = []
 
-    def process_score(self):
+    def process_score(self, optimize=False, bound=None):
         if (self.depth == 0 or not self.board.get_possible_moves()):
             self.score = self.estimator(self.board)
             return
-        for move in self.board.get_possible_moves():
-            self.sons.append(BoardTreeNode(self.board.create_new_board_from_move(move), self.host_id, self.depth - 1, self.estimator, move))
-            self.sons[-1].process_score()
         core_func = (max if self.board.player_turn == self.host_id else min)
         self.score = None
-        for son in self.sons:
+        for move in self.board.get_possible_moves():
+            self.sons.append(BoardTreeNode(self.board.create_new_board_from_move(move), self.host_id, self.depth - 1, self.estimator, move))
+            self.sons[-1].process_score(optimize, self.score)
             if (self.score == None):
-                self.score = son.score
+                self.score = self.sons[-1].score
             else:
-                self.score = core_func(self.score, son.score)
+                self.score = core_func(self.score, self.sons[-1].score)
+
+            if (optimize and bound != None and core_func(bound, self.score) == self.score):
+                return
 
     def choose_best_move(self):
         best_node = None
@@ -61,7 +64,7 @@ class BasicMinimaxPlayer(Player):
 
     def choose_move(self):
         root = BoardTreeNode(self.board, self.player_id, self.depth, self.get_grade)
-        root.process_score()
+        root.process_score(self.optimize)
         return root.choose_best_move()
     
     def easy_estimation(self, board, player):
@@ -76,7 +79,7 @@ class BasicMinimaxPlayer(Player):
 class EasyPlayer(BasicMinimaxPlayer):
    
     def __init__(self):
-        super().__init__(2)  
+        super().__init__(2, optimize=False)  
  
     def estimate_player_pieces(self, board, player):
         cost = 0
@@ -95,7 +98,7 @@ class EasyPlayer(BasicMinimaxPlayer):
 class HardPlayer(BasicMinimaxPlayer):
    
     def __init__(self):
-        super().__init__(4)
+        super().__init__(6, optimize=True)
 
     def estimate_player_pieces(self, board, player):
         cost = 0
